@@ -456,10 +456,20 @@ export class EditorSettings {
 
         if (!aiService || !aiService.cache) return;
 
+        // Render the saved selection immediately, even offline or if listing
+        // models fails. Listing models is not required to retain a selection.
+        this.filterModels();
+
         const models = aiService.cache.models[provider];
         if (!models) {
             const apiKey = AppState.settings[`ai_api_key_${provider}`] || "";
-            aiService.cache.models[provider] = await aiService.fetchModels(provider, apiKey);
+            try {
+                aiService.cache.models[provider] = await aiService.fetchModels(provider, apiKey);
+            } catch {
+                if (this.aiTestResult && (AppState.settings.ai_provider || 'gemini') === provider) {
+                    this.aiTestResult.textContent = 'Could not load models. Your saved selection is still available.';
+                }
+            }
         }
 
         this.filterModels();

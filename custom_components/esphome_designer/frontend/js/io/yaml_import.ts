@@ -2,6 +2,7 @@ import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES } from './devices.js';
 import { omitSecretSettings } from '../core/stores/secrets_store.js';
+import { getPersistedAISettings } from '../core/stores/preferences_store.js';
 import * as yaml from 'js-yaml';
 import {
     DESIGNER_STATE_TRIGGER_MARKER,
@@ -609,6 +610,13 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         ...topLevelSettings,
         ...(data.settings || {})
     }));
+
+    // Migrate old layout preferences only until the user has a local choice.
+    // Loading an older layout must not reset their provider/model on each visit.
+    const savedAISettings = getPersistedAISettings();
+    Object.keys(savedAISettings).forEach((key) => {
+        if (key in mergedSettings) mergedSettings[key] = savedAISettings[key];
+    });
 
     if (Object.keys(mergedSettings).length > 0 && AppState.updateSettings) {
         AppState.updateSettings(mergedSettings);

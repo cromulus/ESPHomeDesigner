@@ -96,7 +96,11 @@ export class AIService {
                     headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
                 const data = await response.json();
-                return data.data.filter(m => m.id.startsWith('gpt-')).map(m => ({ id: m.id, name: m.id }));
+                if (data.error) throw new Error(data.error.message);
+                return data.data
+                    .filter(m => /^(gpt-|chatgpt-|o\d)/.test(m.id) &&
+                        !/(image|audio|realtime|transcribe|tts|search|deep-research)/.test(m.id))
+                    .map(m => ({ id: m.id, name: m.id }));
             } else if (provider === 'gemini') {
                 try {
                     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
@@ -289,46 +293,19 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
     }
 
     async callOpenAI(apiKey, model, system, user) {
-        // Check if this is a GPT-5 model (uses newer API features)
-        const isGpt5 = model && model.toLowerCase().includes('gpt-5');
-
-        // GPT-5 and newer models support json_schema, older models use json_object
-        const responseFormat = isGpt5
-            ? {
-                type: "json_schema",
-                json_schema: {
-                    name: "widget_layout",
-                    strict: true,
-                    schema: {
-                        type: "object",
-                        properties: {
-                            widgets: {
-                                type: "array",
-                                items: { type: "object" }
-                            }
-                        },
-                        required: ["widgets"],
-                        additionalProperties: false
-                    }
-                }
-            }
-            : { type: "json_object" };
-
+        // Use the current token parameter for every model, without a version
+        // allowlist. Leave sampling/reasoning at model defaults: reasoning
+        // models reject custom temperature values. Widget props are extensible,
+        // so JSON mode plus AIValidator fits better than an incomplete strict schema.
         const requestBody = {
             model: model,
             messages: [
                 { role: "system", content: system },
                 { role: "user", content: user }
             ],
-            temperature: 0.1,
-            response_format: responseFormat
+            max_completion_tokens: 8192,
+            response_format: { type: "json_object" }
         };
-
-        if (isGpt5) {
-            requestBody.max_completion_tokens = 8192;
-        } else {
-            requestBody.max_tokens = 8192;
-        }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -340,8 +317,53 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
         });
 
         const data = await response.json();
+        // Some text models (for example Pro/Codex variants) are Responses-only.
+        // Switch endpoints only after an explicit endpoint rejection; never
+        // retry authentication, quota, or network failures as generation calls.
+        if ([400, 404].includes(response.status) && data.error &&
+            /not a chat model|only.{0,80}responses|not supported.{0,80}(chat|v1\/chat)/i.test(data.error.message || '')) {
+            return this.callOpenAIResponses(apiKey, model, system, user);
+        }
         if (data.error) throw new Error(data.error.message);
-        return data.choices[0].message.content;
+        const choice = data.choices?.[0];
+        if (choice?.finish_reason === 'length') {
+            throw new Error('OpenAI reached the output token limit. Try a smaller layout change.');
+        }
+        if (choice?.message?.refusal) throw new Error(choice.message.refusal);
+        if (typeof choice?.message?.content !== 'string' || !choice.message.content.trim()) {
+            throw new Error('OpenAI returned no layout text. Try a smaller layout change or another model.');
+        }
+        return choice.message.content;
+    }
+
+    async callOpenAIResponses(apiKey, model, system, user) {
+        const response = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model,
+                instructions: system,
+                input: user,
+                max_output_tokens: 8192,
+                store: false
+            })
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        if (data.status === 'incomplete') {
+            throw new Error('OpenAI could not complete the layout. Try a smaller layout change.');
+        }
+        const content = (data.output || [])
+            .filter(item => item.type === 'message')
+            .flatMap(item => item.content || []);
+        const refusal = content.find(part => part.type === 'refusal');
+        if (refusal) throw new Error(refusal.refusal);
+        const text = content.filter(part => part.type === 'output_text').map(part => part.text).join('');
+        if (!text.trim()) throw new Error('OpenAI returned no layout text. Try another model.');
+        return text;
     }
 
     async callOpenRouter(apiKey, model, system, user) {

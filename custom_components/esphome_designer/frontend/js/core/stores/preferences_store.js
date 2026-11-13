@@ -2,6 +2,22 @@ import { emit, EVENTS } from '../events.js';
 import { Logger } from '../../utils/logger.js';
 import { DEFAULT_PREFERENCES } from '../constants';
 
+const AI_SETTINGS_STORAGE_KEY = 'esphome-designer-ai-settings';
+const AI_SETTING_KEYS = Object.keys(DEFAULT_PREFERENCES).filter(key =>
+    key === 'ai_provider' || key.startsWith('ai_model_'));
+
+/** Read only known, non-secret AI preferences from browser storage. */
+export function getPersistedAISettings() {
+    try {
+        const saved = JSON.parse(globalThis.localStorage?.getItem(AI_SETTINGS_STORAGE_KEY) || '{}');
+        return Object.fromEntries(AI_SETTING_KEYS
+            .filter(key => typeof saved?.[key] === 'string')
+            .map(key => [key, saved[key]]));
+    } catch {
+        return {};
+    }
+}
+
 /**
  * @typedef {Object} PreferencesState
  * @property {boolean} snapEnabled
@@ -18,7 +34,7 @@ import { DEFAULT_PREFERENCES } from '../constants';
 export class PreferencesStore {
     constructor() {
         /** @type {PreferencesState} */
-        this.state = /** @type {PreferencesState} */ ({ ...DEFAULT_PREFERENCES });
+        this.state = /** @type {PreferencesState} */ ({ ...DEFAULT_PREFERENCES, ...getPersistedAISettings() });
     }
 
     /** @returns {boolean} */
@@ -39,6 +55,16 @@ export class PreferencesStore {
     /** @param {Partial<PreferencesState>} updates */
     update(updates) {
         this.state = { ...this.state, ...updates };
+        const aiUpdates = Object.fromEntries(Object.entries(updates)
+            .filter(([key, value]) => AI_SETTING_KEYS.includes(key) && typeof value === 'string'));
+        if (Object.keys(aiUpdates).length) {
+            try {
+                globalThis.localStorage?.setItem(AI_SETTINGS_STORAGE_KEY,
+                    JSON.stringify({ ...getPersistedAISettings(), ...aiUpdates }));
+            } catch (error) {
+                Logger.warn('[PreferencesStore] Failed to save AI settings:', error);
+            }
+        }
         emit(EVENTS.SETTINGS_CHANGED, this.state);
         Logger.log("[PreferencesStore] Settings updated");
     }

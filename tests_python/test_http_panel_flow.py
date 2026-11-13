@@ -186,3 +186,23 @@ class HttpPanelFlowTests(unittest.IsolatedAsyncioTestCase):
             "id": "custom_touch",
             "interrupt_pin": "GPIO47",
         })
+
+    async def test_inkplate_revisions_are_discovered_as_epaper(self):
+        client = await self._make_client(ReTerminalHardwareListView(self.hass))
+        response = await client.get(
+            "/api/esphome_designer/hardware/templates", headers={"X-Test-Auth": "1"}
+        )
+        self.assertEqual(response.status, 200)
+        profiles = {item["id"]: item for item in (await response.json())["templates"]}
+        for profile_id, width, height in [
+            ("inkplate_6_mcp23017", 800, 600),
+            ("inkplate_6_v2_pcal6416a", 800, 600),
+            ("inkplate_10_mcp23017", 1200, 825),
+            ("inkplate_10_pcal6416a", 1200, 825),
+        ]:
+            with self.subTest(profile=profile_id):
+                profile = profiles[profile_id]
+                self.assertEqual(profile["resolution"], {"width": width, "height": height})
+                self.assertTrue(profile["features"]["epaper"])
+                self.assertFalse(profile["features"]["lcd"])
+                self.assertFalse(profile["features"]["lvgl"])

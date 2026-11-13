@@ -1,0 +1,62 @@
+# TARGET DEVICE: Inkplate 6 (original, MCP23017)
+# Name: Inkplate 6 (original, MCP23017)
+# Resolution: 800x600
+# Shape: rect
+# Orientation: landscape
+# Inverted: true
+# Refresh Interval: 60
+# Source: https://esphome.io/components/display/inkplate/
+# Revisions: https://docs.soldered.com/inkplate/touchpads/overview/
+# Select by the expander fitted to your board, not just the display size.
+# PCAL6416A boards use ESPHome's pca6416a component.
+# Physically untested. Display-only recipe; no optional RTC or battery sensing.
+
+esp32:
+  board: esp-wrover-kit
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+
+psram:
+  speed: 80MHz
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+
+mcp23017:
+  - id: inkplate_io
+    address: 0x20
+
+display:
+  - platform: inkplate
+    id: my_display
+    model: inkplate_6
+    greyscale: false
+    partial_updating: false
+    update_interval: 60s
+    rotation: 0
+    ckv_pin: GPIO32
+    sph_pin: GPIO33
+    gmod_pin:
+      mcp23xxx: inkplate_io
+      number: 1
+    gpio0_enable_pin:
+      mcp23xxx: inkplate_io
+      number: 8
+    oe_pin:
+      mcp23xxx: inkplate_io
+      number: 0
+    spv_pin:
+      mcp23xxx: inkplate_io
+      number: 2
+    powerup_pin:
+      mcp23xxx: inkplate_io
+      number: 4
+    wakeup_pin:
+      mcp23xxx: inkplate_io
+      number: 3
+    vcom_pin:
+      mcp23xxx: inkplate_io
+      number: 5
+    # __LAMBDA_PLACEHOLDER__

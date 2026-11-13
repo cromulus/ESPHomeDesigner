@@ -187,7 +187,7 @@ class ReTerminalHardwareListView(DesignerBaseView):
                 if board_comment_match:
                     board = board_comment_match.group(1).strip()
 
-                is_epaper = "waveshare_epaper" in content or "epaper_spi" in content or "it8951" in content
+                is_epaper = "waveshare_epaper" in content or "epaper_spi" in content or "it8951" in content or bool(re.search(r"platform:\s*inkplate(?:6)?\b", content))
                 if is_epaper:
                     features["epaper"] = True
                     features["lcd"] = False

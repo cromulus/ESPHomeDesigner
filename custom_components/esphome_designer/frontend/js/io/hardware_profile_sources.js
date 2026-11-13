@@ -218,6 +218,8 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
     const invertColorsMatch = displayBlock.match(/^\s*invert_colors:\s*(true|false)/mi);
     const invertColors = invertColorsMatch ? invertColorsMatch[1].toLowerCase() === 'true' : undefined;
 
+    const isEpaper = ['waveshare_epaper', 'epaper_spi', 'it8951', 'inkplate', 'inkplate6'].includes(displayPlatform);
+
     const touchBlock = extractTopLevelYamlBlock(yaml, 'touchscreen');
     let touch = undefined;
     if (touchBlock) {
@@ -260,9 +262,9 @@ export function parseHardwareRecipeClientSide(yaml, filename) {
         content: yaml,
         features: {
             psram: yaml.includes('psram:'),
-            lcd: !yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951'),
-            lvgl: yaml.includes('lvgl:') || (!yaml.includes('waveshare_epaper') && !yaml.includes('epaper_spi') && !yaml.includes('it8951')),
-            epaper: yaml.includes('waveshare_epaper') || yaml.includes('epaper_spi') || yaml.includes('it8951'),
+            lcd: !isEpaper,
+            lvgl: yaml.includes('lvgl:') || (!isEpaper),
+            epaper: isEpaper,
             touch: !!touch || yaml.includes('touchscreen:'),
             inverted_colors: isInverted
         }

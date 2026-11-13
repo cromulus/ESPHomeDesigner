@@ -417,7 +417,7 @@ describe('EditorSettings', () => {
         const pending = directEditorSettings.refreshModelSelect();
 
         const modelSelect = /** @type {HTMLSelectElement} */ (document.getElementById('aiModelSelect'));
-        expect(modelSelect.options.length).toBe(0);
+        expect(modelSelect.value).toBe('gemini-3.5-pro');
 
         resolveModels([
             { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
@@ -445,6 +445,17 @@ describe('EditorSettings', () => {
         expect(Array.from(modelSelect.options).map((option) => option.value))
             .toEqual(['gemini-3.5-pro', 'gemini-3.5-flash']);
         expect(modelSelect.value).toBe('gemini-3.5-pro');
+    });
+
+    it('shows a saved OpenAI model even when refreshing the model list fails', async () => {
+        mockAppState.settings.ai_provider = 'openai';
+        mockAppState.settings.ai_model_openai = 'gpt-6.1-sol';
+        mockAiService.cache.models = {};
+        mockAiService.fetchModels.mockRejectedValueOnce(new Error('offline'));
+        const settings = new EditorSettings();
+        await expect(settings.refreshModelSelect()).resolves.toBeUndefined();
+        expect(settings.aiModelSelect.value).toBe('gpt-6.1-sol');
+        expect(settings.aiTestResult.textContent).toContain('saved selection');
     });
 
     it('toggles collapsible settings sections and logs localStorage theme failures', async () => {

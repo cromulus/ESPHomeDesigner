@@ -41,6 +41,52 @@ describe('ai_service', () => {
         mockAppState.settings = {};
     });
 
+    it.each(['gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-astra', 'gpt-6-luna', 'gpt-5.4', 'o3', 'o4-mini', 'gpt-4.1'])('generates layouts with compatible parameters for %s', async (model) => {
+        fetch.mockImplementation(async (_url, options) => {
+            const body = JSON.parse(options.body);
+            // Emulate the provider's compatibility failures, not just a canned success.
+            expect(body).not.toHaveProperty('max_tokens');
+            expect(body).not.toHaveProperty('temperature');
+            expect(body.max_completion_tokens).toBe(8192);
+            expect(body.response_format).toEqual({ type: 'json_object' });
+            expect(body.model).toBe(model);
+            return { status: 200, json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: '{"widgets":[]}' } }] }) };
+        });
+        await expect(new AIService().callOpenAI('key', model, 'system', 'user')).resolves.toBe('{"widgets":[]}');
+    });
+
+    it('lists reasoning models and filters out specialized non-layout models', async () => {
+        const ids = ['gpt-6.1-sol', 'o3', 'o4-mini', 'gpt-image-1', 'gpt-4o-audio-preview', 'gpt-realtime', 'gpt-4o-transcribe', 'text-embedding-3-small'];
+        fetch.mockResolvedValue({ json: async () => ({ data: ids.map(id => ({ id })) }) });
+        expect((await new AIService().fetchModels('openai', 'key')).map(m => m.id)).toEqual(['gpt-6.1-sol', 'o3', 'o4-mini']);
+    });
+
+    it('uses Responses only after an explicit chat endpoint rejection', async () => {
+        fetch.mockResolvedValueOnce({ status: 404, json: async () => ({ error: { message: 'This model is not supported in the v1/chat/completions endpoint.' } }) })
+            .mockResolvedValueOnce({ status: 200, json: async () => ({ status: 'completed', output: [
+                { type: 'reasoning', summary: [] },
+                { type: 'message', content: [{ type: 'output_text', text: '{"widgets":[]}' }] }
+            ] }) });
+        await expect(new AIService().callOpenAI('key', 'gpt-5.2-pro', 'system', 'user')).resolves.toBe('{"widgets":[]}');
+        expect(fetch.mock.calls[1][0]).toBe('https://api.openai.com/v1/responses');
+        expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({ model: 'gpt-5.2-pro', instructions: 'system', input: 'user', max_output_tokens: 8192, store: false });
+    });
+
+    it.each([401, 429, 500])('does not retry HTTP %s errors', async (status) => {
+        fetch.mockResolvedValue({ status, json: async () => ({ error: { message: 'Request failed' } }) });
+        await expect(new AIService().callOpenAI('key', 'gpt-6.1-sol', 'system', 'user')).rejects.toThrow('Request failed');
+        expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+        [{ finish_reason: 'length', message: { content: '{"widgets":[' } }, 'token limit'],
+        [{ message: { refusal: 'Unable to comply', content: null } }, 'Unable to comply'],
+        [{ message: { content: null } }, 'no layout text']
+    ])('reports incomplete or refused responses before JSON parsing', async (choice, error) => {
+        fetch.mockResolvedValue({ json: async () => ({ choices: [choice] }) });
+        await expect(new AIService().callOpenAI('key', 'gpt-6.1-sol', 'system', 'user')).rejects.toThrow(error);
+    });
+
     it('maps model lists for OpenRouter, OpenAI, and Gemini providers', async () => {
         const service = new AIService();
 
@@ -120,15 +166,16 @@ describe('ai_service', () => {
 
         await expect(service.callOpenAI('openai-key', 'gpt-5-mini', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const gpt5Body = JSON.parse(fetch.mock.calls[1][1].body);
-        expect(gpt5Body.response_format.type).toBe('json_schema');
+        expect(gpt5Body.response_format.type).toBe('json_object');
+        expect(gpt5Body.temperature).toBeUndefined();
         expect(gpt5Body.max_completion_tokens).toBe(8192);
         expect(gpt5Body.max_tokens).toBeUndefined();
 
         await expect(service.callOpenAI('openai-key', 'gpt-4o', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const gpt4Body = JSON.parse(fetch.mock.calls[2][1].body);
         expect(gpt4Body.response_format.type).toBe('json_object');
-        expect(gpt4Body.max_tokens).toBe(8192);
-        expect(gpt4Body.max_completion_tokens).toBeUndefined();
+        expect(gpt4Body.max_tokens).toBeUndefined();
+        expect(gpt4Body.max_completion_tokens).toBe(8192);
 
         await expect(service.callOpenRouter('router-key', 'openrouter/model', 'system', 'user')).resolves.toBe('{"widgets":[]}');
         const routerBody = JSON.parse(fetch.mock.calls[3][1].body);
