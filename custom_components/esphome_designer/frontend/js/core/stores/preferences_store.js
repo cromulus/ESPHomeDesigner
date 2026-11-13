@@ -18,6 +18,16 @@ export function getPersistedAISettings() {
     }
 }
 
+/** Autosave must persist immediately, even when background saving is off. */
+export function getPersistedAutoSaveSettings() {
+    try {
+        const saved = globalThis.localStorage?.getItem('esphome-designer-autosave');
+        return saved === 'true' || saved === 'false' ? { autoSaveEnabled: saved === 'true' } : {};
+    } catch {
+        return {};
+    }
+}
+
 /**
  * @typedef {Object} PreferencesState
  * @property {boolean} snapEnabled
@@ -34,7 +44,7 @@ export function getPersistedAISettings() {
 export class PreferencesStore {
     constructor() {
         /** @type {PreferencesState} */
-        this.state = /** @type {PreferencesState} */ ({ ...DEFAULT_PREFERENCES, ...getPersistedAISettings() });
+        this.state = /** @type {PreferencesState} */ ({ ...DEFAULT_PREFERENCES, ...getPersistedAISettings(), ...getPersistedAutoSaveSettings() });
     }
 
     /** @returns {boolean} */
@@ -55,6 +65,13 @@ export class PreferencesStore {
     /** @param {Partial<PreferencesState>} updates */
     update(updates) {
         this.state = { ...this.state, ...updates };
+        if (typeof updates.autoSaveEnabled === 'boolean') {
+            try {
+                globalThis.localStorage?.setItem('esphome-designer-autosave', String(updates.autoSaveEnabled));
+            } catch (error) {
+                Logger.warn('[PreferencesStore] Failed to save autosave setting:', error);
+            }
+        }
         const aiUpdates = Object.fromEntries(Object.entries(updates)
             .filter(([key, value]) => AI_SETTING_KEYS.includes(key) && typeof value === 'string'));
         if (Object.keys(aiUpdates).length) {
@@ -95,7 +112,6 @@ export class PreferencesStore {
 
     /** @param {boolean} enabled */
     setAutoSaveEnabled(enabled) {
-        this.state.autoSaveEnabled = enabled;
-        emit(EVENTS.SETTINGS_CHANGED, { autoSaveEnabled: enabled });
+        this.update({ autoSaveEnabled: enabled });
     }
 }

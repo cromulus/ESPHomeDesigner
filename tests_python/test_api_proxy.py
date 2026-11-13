@@ -81,6 +81,12 @@ class ProxyApiTests(unittest.IsolatedAsyncioTestCase):
         modules = load_integration_modules()
         self.proxy_module = modules["proxy"]
 
+    def test_rejects_invalid_url_port_without_raising(self):
+        for url in ("https://example.com:bad/feed", "https://example.com:99999/feed"):
+            valid, error = self.proxy_module._validate_public_rss_url(url)
+            self.assertFalse(valid)
+            self.assertEqual(error, "invalid_url")
+
     def test_resolve_image_path_allows_known_image_roots(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             image_path = Path(tmpdir) / "esphome" / "images" / "logo.png"

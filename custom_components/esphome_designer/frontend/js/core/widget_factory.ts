@@ -34,7 +34,7 @@ export class WidgetFactory {
         // "light" = force light mode
         if (pageDarkMode === "dark") return true;
         if (pageDarkMode === "light") return false;
-        return !!(AppState && (AppState as any).settings && (AppState as any).settings.dark_mode);
+        return !!(AppState && (AppState as any).settings && (AppState as any).settings.darkMode);
     }
 
     /**

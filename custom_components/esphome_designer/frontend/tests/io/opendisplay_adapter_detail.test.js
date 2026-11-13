@@ -71,16 +71,16 @@ describe('OpenDisplayAdapter details', () => {
         });
 
         expect(yaml).toContain('action: opendisplay.drawcustom');
-        expect(yaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
-        expect(yaml).toContain('background: black');
+        expect(yaml).toContain('device_id: "95b2d0433f2c26d08088d6296a00a70d"');
+        expect(yaml).toContain('background: "black"');
         expect(yaml).toContain('rotate: 90');
         expect(yaml).toContain('refresh_type: "0"');
         expect(yaml).toContain('dry-run: false');
         expect(yaml).not.toContain('payload: |-');
         expect((yaml.match(/# id: w_payload/g) || [])).toHaveLength(2);
         expect(yaml).toContain('value: "Line 1\\nLine: 2"');
-        expect(yaml).toContain('anchor: ma');
-        expect(yaml).not.toContain('anchor: ct');
+        expect(yaml).toContain('anchor: "ma"');
+        expect(yaml).not.toContain('anchor: "ct"');
         expect(yaml).toContain('data: [{"entity":"sensor.temperature","color":"black"}]');
         expect(yaml).toContain('meta: {"smooth":true}');
     });
@@ -121,7 +121,7 @@ describe('OpenDisplayAdapter details', () => {
         expect(yaml).toContain('# id: w_text_center');
         expect(yaml).toContain('x: 60');
         expect(yaml).toContain('y: 20');
-        expect(yaml).toContain('anchor: ma');
+        expect(yaml).toContain('anchor: "ma"');
         expect(yaml).not.toMatch(/anchor:\s*(?:ct|cm|cb|tc|cc|bc)\b/);
     });
 
@@ -146,8 +146,8 @@ describe('OpenDisplayAdapter details', () => {
             }]
         });
 
-        expect(yaml).toContain('background: black');
-        expect(yaml).toContain('color: white');
+        expect(yaml).toContain('background: "black"');
+        expect(yaml).toContain('color: "white"');
     });
 
     it('inherits global dark mode when a legacy page has no dark mode setting', async () => {
@@ -157,7 +157,7 @@ describe('OpenDisplayAdapter details', () => {
             pages: [{ widgets: [] }]
         });
 
-        expect(yaml).toContain('background: black');
+        expect(yaml).toContain('background: "black"');
     });
 
     it('preserves zero TTL and falls back from invalid numeric settings', async () => {
@@ -183,7 +183,7 @@ describe('OpenDisplayAdapter details', () => {
             pages: [{ widgets: [] }]
         });
 
-        expect(yaml).toContain('device_id: current_device_id');
+        expect(yaml).toContain('device_id: "current_device_id"');
         expect(yaml).toContain('dither: 4');
         expect(yaml).toContain('ttl: 120');
     });
@@ -255,7 +255,7 @@ describe('OpenDisplayAdapter details', () => {
                 opendisplayEntityId: '95b2d0433f2c26d08088d6296a00a70d'
             }
         });
-        expect(legacyDeviceIdYaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+        expect(legacyDeviceIdYaml).toContain('device_id: "95b2d0433f2c26d08088d6296a00a70d"');
 
         const legacyEntityYaml = await adapter.generate({
             ...baseLayout,

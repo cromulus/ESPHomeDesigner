@@ -10,6 +10,7 @@ const mockAppState = {
         ai_api_key_gemini: ''
     },
     deviceModel: 'reterminal_e1001',
+    recordHistory: vi.fn(),
     selectedWidgetId: 'w1',
     project: {
         rebuildWidgetsIndex: vi.fn()
@@ -117,16 +118,20 @@ describe('LLMPrompt', () => {
         expect(prompt.input.disabled).toBe(false);
     });
 
-    it('applies generated widgets and emits a state change', () => {
+    it('applies generated widgets and emits a state change', async () => {
         prompt.init();
         prompt.open();
-        prompt.generatedWidgets = [
+        const generatedWidgets = [
             { id: 'w1', type: 'text', props: { text: 'Updated' } }
         ];
 
+        mockProcessPrompt.mockResolvedValue(generatedWidgets);
+        prompt.input.value = "Update";
+        await prompt.handleSubmit();
         prompt.handleApply();
 
-        expect(currentPage.widgets).toEqual(prompt.generatedWidgets);
+        expect(currentPage.widgets).toEqual(generatedWidgets);
+        expect(mockAppState.recordHistory).toHaveBeenCalledTimes(2);
         expect(mockAppState.project.rebuildWidgetsIndex).toHaveBeenCalled();
         expect(mockEmit).toHaveBeenCalledWith('STATE_CHANGED');
         expect(mockShowToast).toHaveBeenCalledWith('AI changes applied!', 'success');

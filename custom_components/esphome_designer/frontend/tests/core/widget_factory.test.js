@@ -9,7 +9,7 @@ import { AppState } from '../../js/core/state';
 vi.mock('../../js/core/state', () => ({
     AppState: {
         getCurrentPage: vi.fn(() => ({})),
-        settings: { dark_mode: false },
+        settings: { darkMode: false },
         updateWidget: vi.fn()
     }
 }));
@@ -42,9 +42,9 @@ describe('WidgetFactory', () => {
 
         it('should inherit from global settings if page dark_mode is "inherit"', () => {
             AppState.getCurrentPage.mockReturnValue({ dark_mode: 'inherit' });
-            AppState.settings.dark_mode = true;
+            AppState.settings.darkMode = true;
             expect(WidgetFactory.getEffectiveDarkMode()).toBe(true);
-            AppState.settings.dark_mode = false;
+            AppState.settings.darkMode = false;
             expect(WidgetFactory.getEffectiveDarkMode()).toBe(false);
         });
     });

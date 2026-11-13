@@ -1,3 +1,21 @@
+## v1.0.0 RC49 - cromulus fork: AI reliability and Inkplate profiles
+
+This release belongs to `cromulus/ESPHomeDesigner`. Switching from upstream requires changing the installed Marketplace/HACS repository; a version bump alone does not change the update source. See the fork installation section in README.md. Back up layouts and Home Assistant before removing an existing Marketplace installation.
+
+- Support current OpenAI request parameters and persist provider/model preferences independently of layouts.
+- Normalize AI widgets to the editor format; reject invalid and duplicate widgets; preserve content and bindings.
+- Apply AI edits as an undoable operation and reject results after page/layout changes or closing the dialog.
+- Select and save the initially displayed AI model.
+- Add Inkplate 6 and Inkplate 10 profiles with MCP23017 and PCAL6416A variants.
+- Preserve YAML-sensitive OpenDisplay strings, including multiline delimiters.
+- Fix inherited dark-mode widget colors and autosave persistence/cancellation.
+- Include bundled hardware recipes in dist freshness verification.
+- Use the same Python interpreter for local tests and the quality gate; restore the documented pre-push hook.
+- Reject malformed layout widget lists and RSS URL ports with controlled errors.
+- Add regression coverage for these failures. Physical Inkplate validation remains pending.
+
+---
+
 ## v1.0.0 RC48 - Mobile Sidebar, Device Profile Cleanup, OEPL, and Requesty
 **Release Date:** October 17, 2026
 

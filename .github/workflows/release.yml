@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Read version from manifest.json
         id: version
@@ -31,25 +31,38 @@ jobs:
           fi
           
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install Python test dependencies
+        run: python -m pip install -r requirements-dev.txt
 
       - name: Build Frontend
         run: |
           npm ci
           npm run build
 
+      - name: Verify release
+        run: |
+          npm run verify:dist
+          npm run quality -- --json --proof-dir=tmp/proof/release
+          npm run verify:ha
+
       - name: Create Zip for HACS
         run: |
           cd custom_components/esphome_designer
-          zip -r ../../esphome_designer.zip .
+          zip -r ../../esphome_designer.zip . -x "__pycache__/*" "*/__pycache__/*" "*.pyc" "frontend/tests/*"
           
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
-          name: ${{ steps.version.outputs.version }}
+          name: ESPHome Designer (cromulus) ${{ steps.version.outputs.version }}
           body_path: release_notes.md
           draft: false
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}

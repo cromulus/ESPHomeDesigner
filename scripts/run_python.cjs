@@ -10,17 +10,17 @@ const PYTHON_BIN = process.platform === 'win32'
     : path.join('bin', 'python');
 
 function resolvePythonCommand() {
-    const candidates = [];
+    const candidates = [path.join(ROOT, '.venv', PYTHON_BIN)];
 
     if (process.env.VIRTUAL_ENV) {
         candidates.push(path.join(process.env.VIRTUAL_ENV, PYTHON_BIN));
     }
 
-    candidates.push(path.join(ROOT, '.venv', PYTHON_BIN));
-    candidates.push('python');
+    candidates.push('python3', 'python');
 
     for (const candidate of candidates) {
-        if (!candidate.includes(path.sep) || fs.existsSync(candidate)) {
+        if ((!candidate.includes(path.sep) || fs.existsSync(candidate)) &&
+            spawnSync(candidate, ['--version'], { stdio: 'ignore', shell: false }).status === 0) {
             return candidate;
         }
     }

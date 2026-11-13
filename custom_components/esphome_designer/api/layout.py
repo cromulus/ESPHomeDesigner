@@ -54,7 +54,12 @@ class ReTerminalLayoutView(DesignerBaseView):
             )
 
         pages = body.get("pages", [])
-        page_count = len(pages) if isinstance(pages, list) else 0
+        if not isinstance(pages, list) or any(
+            not isinstance(page, dict) or not isinstance(page.get("widgets", []), list)
+            for page in pages
+        ):
+            return self.json({"error": "invalid_layout"}, HTTPStatus.BAD_REQUEST, request=request)
+        page_count = len(pages)
         widget_count = sum(
             len(page.get("widgets", []))
             for page in pages

@@ -2,7 +2,7 @@ import { AppState } from '../core/state';
 import { Logger } from '../utils/logger.js';
 import { DEVICE_PROFILES } from './devices.js';
 import { omitSecretSettings } from '../core/stores/secrets_store.js';
-import { getPersistedAISettings } from '../core/stores/preferences_store.js';
+import { getPersistedAISettings, getPersistedAutoSaveSettings } from '../core/stores/preferences_store.js';
 import * as yaml from 'js-yaml';
 import {
     DESIGNER_STATE_TRIGGER_MARKER,
@@ -589,7 +589,7 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
         'opendisplayDeviceId', 'opendisplay_device_id', 'odpDeviceId', 'odp_device_id',
         'opendisplayEntityId', 'opendisplayDither', 'opendisplayTtl', 'glyphsets',
         'extendedLatinGlyphs', 'editor_light_mode', 'snapEnabled', 'showGrid',
-        'showDebugGrid', 'showRulers', 'gridOpacity',
+        'showDebugGrid', 'showRulers', 'gridOpacity', 'autoSaveEnabled',
         'ai_provider', 'ai_model_filter', 'ai_model_gemini', 'ai_model_openai',
         'ai_model_openrouter', 'ai_model_requesty', 'ai_model_minimax', 'ai_model_glm'
     ];
@@ -617,6 +617,8 @@ export function loadLayoutIntoState(layout: ParsedLayout | null | undefined): vo
     Object.keys(savedAISettings).forEach((key) => {
         if (key in mergedSettings) mergedSettings[key] = savedAISettings[key];
     });
+
+    Object.assign(mergedSettings, getPersistedAutoSaveSettings());
 
     if (Object.keys(mergedSettings).length > 0 && AppState.updateSettings) {
         AppState.updateSettings(mergedSettings);

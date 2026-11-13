@@ -1,6 +1,6 @@
 {
   "domain": "esphome_designer",
-  "name": "ESPHome Designer",
+  "name": "ESPHome Designer (cromulus)",
   "after_dependencies": [
     "http",
     "frontend",
@@ -8,16 +8,17 @@
     "recorder"
   ],
   "codeowners": [
+    "@cromulus",
     "@koosoli"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/koosoli/ESPHomeDesigner",
+  "documentation": "https://github.com/cromulus/ESPHomeDesigner",
   "integration_type": "hub",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/koosoli/ESPHomeDesigner/issues",
+  "issue_tracker": "https://github.com/cromulus/ESPHomeDesigner/issues",
   "loggers": [
     "custom_components.esphome_designer"
   ],
   "requirements": [],
-  "version": "1.0.0-rc.48"
+  "version": "1.0.0-rc.49"
 }

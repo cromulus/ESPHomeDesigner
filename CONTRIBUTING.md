@@ -75,6 +75,8 @@ That adds baseline governance, the dist freshness check, Home Assistant integrat
 npm run hooks:install
 ```
 
+When Docker is unavailable, use `ESPHOME_DESIGNER_SKIP_HASSFEST=1 git push`; all other pre-push checks still run.
+
 If you changed frontend source, Vite config, or anything that affects the shipped UI bundle, you should also be able to pass:
 
 ```bash

@@ -140,6 +140,7 @@ def _resolve_public_rss_target(
 
     try:
         parsed = urlparse(raw_url)
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
     except ValueError:
         return None, "invalid_url"
 
@@ -153,8 +154,6 @@ def _resolve_public_rss_target(
     hostname = parsed.hostname.lower()
     if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith(".local") or hostname.endswith(".internal"):
         return None, "private_host_blocked"
-
-    port = parsed.port or (443 if parsed.scheme == "https" else 80)
 
     try:
         direct_ip = ipaddress.ip_address(hostname)

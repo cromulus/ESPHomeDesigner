@@ -217,7 +217,7 @@ describe('complex workflow round-trip coverage', () => {
         const openDisplayLayout = createProtocolLayout('opendisplayDeviceId', '95b2d0433f2c26d08088d6296a00a70d');
 
         const openDisplayYaml = await openDisplay.generate(openDisplayLayout);
-        expect(openDisplayYaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+        expect(openDisplayYaml).toContain('device_id: "95b2d0433f2c26d08088d6296a00a70d"');
         expect(openDisplayYaml).toContain('# id: w_text_protocol_a');
         expect(openDisplayYaml).toContain('# id: w_text_protocol_b');
 

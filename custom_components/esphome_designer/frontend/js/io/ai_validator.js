@@ -16,30 +16,45 @@ export class AIValidator {
             return { valid: false, errors: ['Widget missing "type" field'], sanitized: null };
         }
 
-        const plugin = registry.get(widget.type);
+        const plugin = widget.type === 'group' ? { defaults: {} } : registry.get(widget.type);
         if (!plugin) {
             return { valid: false, errors: [`Unknown widget type: "${widget.type}"`], sanitized: null };
         }
 
-        const sanitized = { ...widget };
-        const allowedProps = new Set([
-            'id', 'type', 'x', 'y', 'width', 'height', 'z_index',
-            ...Object.keys(plugin.defaults || {})
+        // Plugins own an extensible nested props object. Core metadata stays at
+        // the top level; accept legacy flat plugin properties at this boundary.
+        const coreKeys = new Set([
+            'id', 'type', 'x', 'y', 'width', 'height', 'z_index', 'title',
+            'entity_id', 'entity_id_2', 'locked', 'hidden', 'parentId',
+            'condition_entity', 'condition_operator', 'condition_state',
+            'condition_value', 'condition_min', 'condition_max', 'condition_invert'
         ]);
-
-        // Check for hallucinated properties
-        for (const key of Object.keys(widget)) {
-            if (!allowedProps.has(key)) {
-                errors.push(`Hallucinated property "${key}" in widget type "${widget.type}"`);
-                delete sanitized[key];
-            }
+        const pluginKeys = new Set([
+            ...Object.keys(plugin.defaults || {}),
+            ...(plugin.schema || []).flatMap(section => (section.fields || []).map(field => field.key))
+        ]);
+        const sanitized = { props: {} };
+        if (widget.props !== undefined && (!widget.props || typeof widget.props !== 'object' || Array.isArray(widget.props))) {
+            errors.push('Widget "props" must be an object');
         }
-
-        // Check for missing required structural properties
-        const required = ['id', 'x', 'y', 'width', 'height'];
-        for (const req of required) {
+        for (const [key, value] of Object.entries(widget)) {
+            if (coreKeys.has(key)) sanitized[key] = value;
+            else if (key === 'props') continue;
+            else if (pluginKeys.has(key)) sanitized.props[key] = value;
+            else errors.push(`Hallucinated property "${key}" in widget type "${widget.type}"`);
+        }
+        // Canonical properties take precedence over legacy flat aliases.
+        if (widget.props && typeof widget.props === 'object' && !Array.isArray(widget.props)) {
+            sanitized.props = { ...sanitized.props, ...widget.props };
+        }
+        if (typeof widget.id !== 'string' || !widget.id.trim()) {
+            errors.push('Widget must have a non-empty string "id"');
+        }
+        for (const req of ['x', 'y', 'width', 'height']) {
             if (widget[req] === undefined || widget[req] === null) {
                 errors.push(`Missing required property "${req}" in widget "${widget.id || 'unknown'}"`);
+            } else if (!Number.isFinite(widget[req]) || ((req === 'width' || req === 'height') && widget[req] <= 0)) {
+                errors.push(`Invalid geometry "${req}" in widget "${widget.id}"`);
             }
         }
 
@@ -68,7 +83,10 @@ export class AIValidator {
             return { valid: false, errors: ['AI response must be an array of widgets or an object with a "widgets" array'], sanitized: [] };
         }
 
+        const ids = new Set();
         for (const w of widgets) {
+            if (w?.id && ids.has(w.id)) errors.push(`Duplicate widget id: "${w.id}"`);
+            ids.add(w?.id);
             const result = this.validateWidget(w);
             if (!result.valid) {
                 errors.push(...result.errors);

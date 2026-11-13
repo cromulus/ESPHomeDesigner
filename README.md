@@ -1,3 +1,25 @@
+## Installing the cromulus fork
+
+This repository publishes **ESPHome Designer (cromulus)**. It retains the `esphome_designer` integration domain and layout storage format so existing layouts can be reused. Upstream attribution and history remain intact.
+
+### Home Assistant Marketplace (2026.11 and newer)
+
+1. Back up Home Assistant and export your Designer layouts. Keep a copy of `/config/.storage/esphome_designer` and any `/config/esphomedesigner_custom_profiles/` files. A Marketplace uninstall may require deleting the configured integration setup, including associated devices/entities.
+2. If `koosoli/ESPHomeDesigner` is installed, open its Marketplace page and uninstall it. Marketplace does not allow two repositories to own the same integration domain. Follow its setup-removal prompt; this is not a side-by-side installation. Do not edit Marketplace's internal storage to bypass ownership checks.
+3. Go to **Settings → Marketplace → Add from link** and enter `https://github.com/cromulus/ESPHomeDesigner`. Connect GitHub if prompted.
+4. Open **ESPHome Designer (cromulus)**, enable **Pre-release**, and install **v1.0.0-rc.49** (or a newer fork release).
+5. Restart Home Assistant. Add **ESPHome Designer (cromulus)** under **Devices & services** if its setup was removed. Verify the editor header shows **RC49 · cromulus** and that your layouts are present; import your saved layouts if needed.
+
+Future updates must come from **cromulus/ESPHomeDesigner**, not the upstream catalog entry. A higher manifest version does not change repository ownership or the update source.
+
+### Older Home Assistant with HACS
+
+Back up/export layouts first, uninstall the upstream repository through HACS, then use **HACS → ⋮ → Custom repositories** to add `https://github.com/cromulus/ESPHomeDesigner` with type **Integration**. Download this fork's release (enable pre-releases if needed), restart Home Assistant, and verify the fork version in the editor. Keep the existing integration setup if HACS permits it; Marketplace's newer uninstall behavior differs.
+
+The release asset is `esphome_designer.zip`, with `manifest.json` at the ZIP root and the built frontend included. For rollback, uninstall the fork repository and reinstall the previous upstream release, then restore your backup if needed.
+
+Sources: [Marketplace installation and removal](https://www.home-assistant.io/integrations/marketplace/), [integration domain ownership](https://contributors.home-assistant.io/marketplace/guides/integrations/), [release and ZIP requirements](https://contributors.home-assistant.io/marketplace/guides/releases/).
+
 # ESPHome Designer
 
 **A visual drag-and-drop editor for smart displays, supporting ESPHome, OpenEpaperLink (OEPL), and OpenDisplay - running as a Home Assistant integration or a standalone web app.**
@@ -22,7 +44,7 @@
     <img src="https://img.shields.io/badge/YouTube-Watch%20v0.8.6%20Overview-red?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Video">
   </a>
   <a href="https://koosoli.github.io/ESPHomeDesigner/">
-    <img src="https://img.shields.io/badge/Live%20Demo-Try%20it%20now-blue?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Live Demo">
+    <img src="https://img.shields.io/badge/Upstream%20Demo-Try%20it%20now-blue?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Upstream demo">
   </a>
   <br>
   <strong>Click to watch the latest feature walkthrough or try the demo.</strong>
@@ -75,16 +97,16 @@ Build premium, touch-interactive dashboards for ESP32-based devices, wireless e-
 
 You can use the designer without installing anything! 
 
-1. Go to [koosoli.github.io/ESPHomeDesigner/](https://koosoli.github.io/ESPHomeDesigner/)
+1. For the upstream demo, go to [koosoli.github.io/ESPHomeDesigner/](https://koosoli.github.io/ESPHomeDesigner/). It does not include this fork's fixes; use the local frontend or fork integration for those.
 2. Open **Editor Settings** (gear icon)
 3. Enter your Home Assistant URL and a **Long-Lived Access Token** (created in your HA profile)
 4. Add the designer URL to your HA `cors_allowed_origins` (see below)
 
 #### 2. Install via HACS (Recommended)
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=koosoli&repository=ESPHomeDesigner&category=Integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=cromulus&repository=ESPHomeDesigner&category=Integration)
 
-1. Add `https://github.com/koosoli/ESPHomeDesigner` to HACS as a custom repository
+1. Add `https://github.com/cromulus/ESPHomeDesigner` to HACS as a custom repository (see the fork migration steps above if upstream is installed)
 2. Search for "ESPHome Designer" and install
 3. Restart Home Assistant
 4. Go to **Settings** -> **Devices & Services** -> **Add Integration** -> Search for "ESPHome Designer"
@@ -134,10 +156,10 @@ Open `http://localhost:5174` in your browser.
 
 **Option B: Frontend-Only (Python HTTP Server)**
 
-If you only have the `custom_components` folder (e.g., HACS install), serve the frontend directly:
+If you only have the `custom_components` folder (e.g., HACS install), serve the prebuilt frontend directly:
 
 ```bash
-cd custom_components/esphome_designer/frontend
+cd custom_components/esphome_designer/frontend/dist
 python3 -m http.server 8000
 ```
 

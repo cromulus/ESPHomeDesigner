@@ -393,8 +393,8 @@ describe('ai_service', () => {
             ai_model_gemini: ''
         };
         mockAIValidator.validateResponse.mockReturnValue({
-            valid: false,
-            errors: ['Minor issue'],
+            valid: true,
+            errors: [],
             sanitized: [{ id: 'w_2', type: 'text' }]
         });
         service.fetchModels = vi.fn().mockRejectedValue(new Error('bad key'));

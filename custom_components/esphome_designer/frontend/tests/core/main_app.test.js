@@ -428,6 +428,24 @@ describe('App bootstrap', () => {
         expect(mockPageSettingsOpen).toHaveBeenCalledWith(3);
     });
 
+    it('cancels a pending save when autosave is disabled', async () => {
+        vi.useFakeTimers();
+        const { App } = await import('../../js/main.js');
+        const { on, EVENTS } = await import('../../js/core/events.js');
+        const app = new App();
+        backendEnabled = false;
+        mockAppState.settings.autoSaveEnabled = true;
+        app.setupAutoSave();
+        const stateChanged = on.mock.calls.find(call => call[0] === EVENTS.STATE_CHANGED)[1];
+        stateChanged();
+        mockAppState.settings.autoSaveEnabled = false;
+        stateChanged();
+        vi.advanceTimersByTime(2000);
+        expect(mockAppState.saveToLocalStorage).not.toHaveBeenCalled();
+        mockAppState.settings.autoSaveEnabled = true;
+        vi.useRealTimers();
+    });
+
     it('debounces autosave and saves to the active backend target', async () => {
         vi.useFakeTimers();
         const { App } = await import('../../js/main.js');

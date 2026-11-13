@@ -23,6 +23,8 @@ export class LLMPrompt {
 
         /** @type {Array<Record<string, unknown>> | null} */
         this.generatedWidgets = null;
+        this.requestId = 0;
+        this.generationTarget = null;
         /** @type {((source: string) => void) | null} */
         this.onOpenEditorSettings = null;
     }
@@ -68,6 +70,10 @@ export class LLMPrompt {
     }
 
     close() {
+        this.requestId++;
+        this.generatedWidgets = null;
+        this.generationTarget = null;
+        this.setLoading(false);
         if (this.modal) {
             this.modal.classList.add('hidden');
             this.modal.style.display = 'none';
@@ -79,6 +85,9 @@ export class LLMPrompt {
         const prompt = this.input.value.trim();
         if (!prompt) return;
 
+        const requestId = ++this.requestId;
+        this.generatedWidgets = null;
+        this.generationTarget = null;
         this.setLoading(true);
         this.status.textContent = "AI is thinking...";
         this.status.style.color = "var(--accent)";
@@ -87,6 +96,12 @@ export class LLMPrompt {
 
         try {
             const currentPage = AppState.getCurrentPage();
+            const target = {
+                page: currentPage,
+                pages: AppState.pages,
+                layoutId: AppState.currentLayoutId,
+                widgets: JSON.stringify(currentPage.widgets)
+            };
 
             // Detect display type from device profile
             const deviceId = AppState.deviceModel;
@@ -105,12 +120,14 @@ export class LLMPrompt {
             const context = {
                 canvas: AppState.getCanvasDimensions(),
                 current_page: currentPage.id,
-                widgets: currentPage.widgets,
+                widgets: JSON.parse(target.widgets),
                 selected_widget_id: AppState.selectedWidgetId,
                 display_type: displayType
             };
 
             const result = await aiService.processPrompt(prompt, context);
+            if (requestId !== this.requestId) return;
+            this.generationTarget = target;
 
             if (result && Array.isArray(result)) {
                 this.generatedWidgets = /** @type {Array<Record<string, unknown>>} */ (result);
@@ -122,11 +139,12 @@ export class LLMPrompt {
                 throw new Error("Invalid response format from AI");
             }
         } catch (e) {
+            if (requestId !== this.requestId) return;
             Logger.error(e);
             this.status.textContent = "Error: " + (/** @type {Error} */ (e)).message;
             this.status.style.color = "var(--danger)";
         } finally {
-            this.setLoading(false);
+            if (requestId === this.requestId) this.setLoading(false);
         }
     }
 
@@ -135,10 +153,17 @@ export class LLMPrompt {
 
         try {
             const currentPage = AppState.getCurrentPage();
+            const target = this.generationTarget;
+            if (!target || target.page !== currentPage || target.pages !== AppState.pages ||
+                target.layoutId !== AppState.currentLayoutId || target.widgets !== JSON.stringify(currentPage.widgets)) {
+                throw new Error("The page or layout changed. Generate a new preview before applying.");
+            }
+            AppState.recordHistory();
             currentPage.widgets = /** @type {typeof currentPage.widgets} */ (this.generatedWidgets);
 
             // Re-index widgets
             AppState.project.rebuildWidgetsIndex();
+            AppState.recordHistory();
 
             // Trigger update
             emit(EVENTS.STATE_CHANGED);

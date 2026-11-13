@@ -276,16 +276,18 @@ export class App {
 
             this.refreshAdapter();
 
+            if (autoSaveTimer) {
+                clearTimeout(autoSaveTimer);
+                autoSaveTimer = null;
+            }
             if (AppState.settings.autoSaveEnabled === false) {
                 Logger.log('[AutoSave] Background saving is disabled.');
                 return;
             }
 
-            if (autoSaveTimer) {
-                clearTimeout(autoSaveTimer);
-            }
-
             autoSaveTimer = setTimeout(() => {
+                autoSaveTimer = null;
+                if (AppState.settings.autoSaveEnabled === false) return;
                 if (hasHaBackend()) {
                     Logger.log('[AutoSave] Triggering background save to HA...');
                     saveLayoutToBackend().catch(() => undefined);

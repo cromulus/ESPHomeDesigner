@@ -511,6 +511,9 @@ export class EditorSettings {
                 aiModelSelect.insertBefore(opt, aiModelSelect.firstChild);
             }
             aiModelSelect.value = currentModel;
+        } else if (filtered.length) {
+            aiModelSelect.value = filtered[0].id;
+            AppState.updateSettings({ [`ai_model_${provider}`]: filtered[0].id });
         }
     }
 

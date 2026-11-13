@@ -38,7 +38,7 @@ describe('AIValidator', () => {
             const result = AIValidator.validateWidget(widget);
             expect(result.valid).toBe(true);
             expect(result.errors).toHaveLength(0);
-            expect(result.sanitized).toEqual(widget);
+            expect(result.sanitized).toEqual({id: 'w1',type:'text',x:10,y:10,width:100,height:30,props:{text:'Valid'}});
         });
 
         it('should fail on unknown widget type', () => {
@@ -64,7 +64,7 @@ describe('AIValidator', () => {
             expect(result.valid).toBe(false);
             expect(result.errors).toHaveLength(1);
             expect(result.sanitized.hallucinated_prop).toBeUndefined();
-            expect(result.sanitized.text).toBe('Keep me');
+            expect(result.sanitized.props.text).toBe('Keep me');
         });
 
         it('should fail on missing structural properties', () => {

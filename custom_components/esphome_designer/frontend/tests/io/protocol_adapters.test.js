@@ -102,7 +102,7 @@ describe('Protocol Adapters round-trip invariants', () => {
         const yaml = await adapter.generate(layout);
 
         expect(yaml).toContain('action: opendisplay.drawcustom');
-        expect(yaml).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+        expect(yaml).toContain('device_id: "95b2d0433f2c26d08088d6296a00a70d"');
         expect(yaml).toContain('rotate: 0');
         expect(yaml).toContain('dither: 3');
         expect(yaml).toContain('ttl: 45');
@@ -111,8 +111,8 @@ describe('Protocol Adapters round-trip invariants', () => {
         expect(yaml).toContain('payload:');
         expect(yaml).not.toContain('payload: |-');
         expect(yaml).toContain('# id: w_text');
-        expect(yaml).toContain('- type: text');
-        expect(yaml).toContain('value: Hi ODP');
+        expect(yaml).toContain('- type: "text"');
+        expect(yaml).toContain('value: "Hi ODP"');
         expect(yaml).not.toContain('w_hidden');
         expect(yaml).not.toContain('w_group');
     });

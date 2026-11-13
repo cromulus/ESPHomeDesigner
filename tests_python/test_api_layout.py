@@ -80,6 +80,13 @@ class LayoutApiTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(sanitized, "kitchendisplay")
 
+    async def test_layout_view_rejects_null_widget_list(self):
+        storage = FakeStorage(None)
+        view = self.layout_module.ReTerminalLayoutView(None, storage)
+        response = await view.post(FakeRequest(b'{"pages":[{"widgets":null}]}'))
+        self.assertEqual(response.status, 400)
+        self.assertEqual(storage.calls, [])
+
     async def test_layout_view_rejects_invalid_json(self):
         storage = FakeStorage(None)
         view = self.layout_module.ReTerminalLayoutView(None, storage)

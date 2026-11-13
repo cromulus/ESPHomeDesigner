@@ -85,16 +85,9 @@ function getOpenDisplaySettings(layout) {
  */
 function formatYamlValue(value) {
     if (typeof value === 'string') {
-        if (
-            value === '' ||
-            /\r|\n/.test(value) ||
-            /^\s|\s$/.test(value) ||
-            /[:#'"[\]{}]|^- /.test(value) ||
-            /^(?:true|false|null|yes|no|on|off|[-+]?\d+(?:\.\d+)?)$/i.test(value)
-        ) {
-            return JSON.stringify(value);
-        }
-        return value;
+        // JSON string syntax is valid YAML and preserves indicators, numeric-looking
+        // text, dates and delimiters without maintaining a partial YAML grammar.
+        return JSON.stringify(value);
     }
 
     if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {

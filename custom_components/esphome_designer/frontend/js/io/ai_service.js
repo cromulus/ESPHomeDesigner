@@ -1,6 +1,7 @@
 import { Logger } from '../utils/logger.js';
 import { AppState } from '../core/state';
 import { AIValidator } from './ai_validator';
+import { registry } from '../core/plugin_registry.js';
 
 export class AIService {
     constructor() {
@@ -228,32 +229,23 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
                 jsonText = jsonText.substring(start, end + 1);
             }
 
+            let parsed;
             try {
-                const parsed = JSON.parse(jsonText);
-                const validation = AIValidator.validateResponse(parsed);
-                if (!validation.valid) {
-                    Logger.warn("[AI] Validation failed:", validation.errors);
-                    // We still return sanitized widgets if possible, or throw if too broken
-                    if (validation.sanitized.length === 0) {
-                        throw new Error("AI returned invalid widget data: " + validation.errors.join(", "));
-                    }
-                }
-                return validation.sanitized;
-            } catch (innerErr) {
-                Logger.warn("Fast JSON parse failed, trying repair...", innerErr);
+                parsed = JSON.parse(jsonText);
+            } catch (parseError) {
+                Logger.warn("Fast JSON parse failed, trying repair...", parseError);
                 try {
-                    const repaired = this.repairJson(jsonText);
-                    const parsed = JSON.parse(repaired);
-                    const validation = AIValidator.validateResponse(parsed);
-                    if (!validation.valid) {
-                        Logger.warn("[AI] Validation failed after repair:", validation.errors);
-                    }
-                    return validation.sanitized;
-                } catch (repairErr) {
-                    Logger.error("JSON repair failed:", repairErr);
+                    parsed = JSON.parse(this.repairJson(jsonText));
+                } catch (repairError) {
+                    Logger.error("JSON repair failed:", repairError);
                     throw new Error("AI returned malformed JSON (possibly truncated). Try a shorter prompt or a more powerful model.");
                 }
             }
+            const validation = AIValidator.validateResponse(parsed);
+            if (!validation.valid) {
+                throw new Error("AI returned invalid widget data: " + validation.errors.join(", "));
+            }
+            return validation.sanitized;
         } catch (e) {
             Logger.error("AI processing failed:", e);
             throw e;
@@ -434,18 +426,13 @@ Respond ONLY with valid JSON containing the updated "widgets" array for the curr
 You are an expert UI designer and developer for ESPHome devices. 
 Your task is to modify or create a widget list based on user instructions.
 
-WIDGET TYPES & PROPS:
-- text: { x, y, width, height, text, font_size, font_family, font_weight (400 or 700), color, align }
-- sensor_text: { x, y, width, height, entity, prefix, suffix, font_size, color }
-- datetime: { x, y, width, height, format, time_font_size, date_font_size, color }
-- weather_forecast: { x, y, width, height, entity, layout ("horizontal"/"vertical"), icon_size, temp_font_size, day_font_size }
-- weather_icon: { x, y, width, height, entity, size, color }
-- icon: { x, y, width, height, icon, icon_size, color }
-- battery_icon: { x, y, width, height, entity, color }
-- progress_bar: { x, y, width, height, color, bar_height }
-- graph: { x, y, width, height, entity, color, duration }
-- shape_rect / rounded_rect / shape_circle: { x, y, width, height, bg_color, border_color, border_width, opacity }
-- lvgl_*: Advanced widgets (lvgl_button, lvgl_switch, lvgl_slider, lvgl_arc, etc).
+WIDGET FORMAT:
+Return {"widgets": [...]} containing the COMPLETE replacement list for the current page.
+Keep id, type, x, y, width, height and core metadata (title, entity_id, locked, hidden,
+parentId, condition_*) at the top level. Put ALL plugin styling/content under "props".
+Preserve existing widget IDs, metadata and props unless the user asks to change them.
+Available widget types and their default plugin properties:
+${JSON.stringify(registry.getAll().map(plugin => ({ type: plugin.id, props: plugin.defaults || {} })))}
 
 STRICT OPERATIONAL RULES:
 1. CONTENT ACCURACY: If the user says "reads 'X'", the 'text' property MUST BE "X". NEVER use generic placeholders like "Text".
@@ -461,10 +448,10 @@ STRICT OPERATIONAL RULES:
 
 FEW-SHOT EXAMPLE:
 User: "Add a large bold title that reads 'Home Status' at the top with a separator line."
-Response: [
-  {"id": "w_title", "type": "text", "x": 20, "y": 10, "width": 760, "height": 50, "text": "Home Status", "font_size": 32, "font_weight": 700, "align": "CENTER"},
-  {"id": "w_sep", "type": "shape_rect", "x": 20, "y": 65, "width": 760, "height": 2, "bg_color": "black", "border_color": "black"}
-]
+Response: {"widgets": [
+  {"id": "w_title", "type": "text", "x": 20, "y": 10, "width": 760, "height": 50, "props": {"text": "Home Status", "font_size": 32, "font_weight": 700, "text_align": "CENTER"}},
+  {"id": "w_sep", "type": "shape_rect", "x": 20, "y": 65, "width": 760, "height": 2, "props": {"bg_color": "black", "border_color": "black"}}
+]}
 
 8. DROP SHADOWS: For LCD displays ("color_lcd"), add subtle drop shadows to shapes and cards.
    HOW TO: Create a DUPLICATE of the widget to be shadowed.

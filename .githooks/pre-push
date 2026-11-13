@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+# Set ESPHOME_DESIGNER_SKIP_HASSFEST=1 when Docker is unavailable.
+if [ "${ESPHOME_DESIGNER_SKIP_HASSFEST:-0}" = "1" ]; then
+    exec npm run verify:pre-push:skip-hassfest
+fi
+exec npm run verify:pre-push

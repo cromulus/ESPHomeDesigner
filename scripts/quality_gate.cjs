@@ -164,14 +164,9 @@ function getGitSha() {
 }
 
 function resolvePythonCommand() {
-    const candidates = ['python', 'py -3'];
-    for (const candidate of candidates) {
-        const result = run(`${candidate} --version`);
-        if (result.status === 0) {
-            return candidate;
-        }
-    }
-    return null;
+    // Delegate to the same interpreter selection used by npm run python:test.
+    const command = 'node scripts/run_python.cjs';
+    return run(`${command} --version`).status === 0 ? command : null;
 }
 
 function run(cmd, options = {}) {

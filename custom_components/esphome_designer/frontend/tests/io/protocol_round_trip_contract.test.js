@@ -123,7 +123,7 @@ describe('Protocol adapter deep round-trip contracts', () => {
 
         const gen1 = await adapter.generate(initialLayout);
         expect(gen1).toContain('action: opendisplay.drawcustom');
-        expect(gen1).toContain('device_id: 95b2d0433f2c26d08088d6296a00a70d');
+        expect(gen1).toContain('device_id: "95b2d0433f2c26d08088d6296a00a70d"');
         const imported = await parseSnippetYamlOffline(gen1);
         const gen2 = await adapter.generate({
             ...initialLayout,
